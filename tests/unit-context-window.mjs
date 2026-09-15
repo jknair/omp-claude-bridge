@@ -7,6 +7,7 @@ import { buildVariantModels, claudeCodeModelId, parseVariantId } from "../src/mo
 // contextWindow and spreads the rest through to each variant).
 const MODELS = [
 	{ id: "claude-fable-5", name: "Fable 5", contextWindow: 1_000_000 },
+	{ id: "claude-opus-5", name: "Opus 5", contextWindow: 200_000 },
 	{ id: "claude-opus-4-8", name: "Opus 4.8", contextWindow: 200_000 },
 	{ id: "claude-opus-4-7", name: "Opus 4.7", contextWindow: 1_000_000 },
 	{ id: "claude-opus-4-6", name: "Opus 4.6", contextWindow: 200_000 },
@@ -21,6 +22,9 @@ const byId = (contextWindow, extra) => Object.fromEntries(variants(contextWindow
 
 test("auto (Pro): each model expands to its available windows with correct ids, windows, and labels", () => {
 	const m = byId("auto");
+	// Opus 5: default 1M + 200K alternate.
+	assert.equal(m["claude-opus-5"].contextWindow, 1_000_000);
+	assert.equal(m["claude-opus-5-200k"].contextWindow, 200_000);
 	// Opus 4.8: default 1M unsuffixed + 200K alternate.
 	assert.equal(m["claude-opus-4-8"].contextWindow, 1_000_000);
 	assert.equal(m["claude-opus-4-8"].name, "Opus 4.8 (1M)");
@@ -46,9 +50,9 @@ test("auto (Pro): each model expands to its available windows with correct ids, 
 	assert.ok(!m["claude-haiku-4-5-1m"], "haiku has no 1M runtime");
 });
 
-test("auto (Pro): 12 entries, and no base model emits two entries for the same window", () => {
+test("auto (Pro): 14 entries, and no base model emits two entries for the same window", () => {
 	const list = variants("auto");
-	assert.equal(list.length, 12);
+	assert.equal(list.length, 14);
 	for (const base of MODELS.map((mm) => mm.id)) {
 		const windows = list.filter((v) => v.id === base || v.id.startsWith(`${base}-`)).map((v) => v.contextWindow);
 		assert.equal(new Set(windows).size, windows.length, `${base} has duplicate windows`);
@@ -100,6 +104,8 @@ test("parseVariantId splits window suffixes and leaves base ids intact", () => {
 test("claudeCodeModelId: unsuffixed id follows the config default", () => {
 	assert.equal(claudeCodeModelId({ id: "claude-fable-5" }, settings("auto")), "claude-fable-5");
 	assert.equal(claudeCodeModelId({ id: "claude-fable-5" }, settings("1m")), "claude-fable-5[1m]");
+	assert.equal(claudeCodeModelId({ id: "claude-opus-5" }, settings("auto")), "claude-opus-5[1m]");
+	assert.equal(claudeCodeModelId({ id: "claude-opus-5-200k" }, settings("auto")), "claude-opus-5");
 	assert.equal(claudeCodeModelId({ id: "claude-opus-4-8" }, settings("auto")), "claude-opus-4-8[1m]");
 	assert.equal(claudeCodeModelId({ id: "claude-opus-4-8" }, settings("200k")), "claude-opus-4-8");
 });
